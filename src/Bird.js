@@ -20,19 +20,10 @@ export class Bird extends Phaser.Physics.Arcade.Sprite {
         
         super(scene, x, y, textureKey);
 
-        // If using a spritesheet, you might want to play an animation
-        // if (textureKey === BIRD_KEY && scene.anims.exists('flap_anim')) { 
-        //    this.play('flap_anim'); 
-        // } else if (textureKey === BIRD_KEY) {
-        //    // Create animation if it doesn't exist (example)
-        //    scene.anims.create({
-        //        key: 'flap_anim',
-        //        frames: scene.anims.generateFrameNumbers(BIRD_KEY, { start: 0, end: 2 }), // Assuming 3 frames
-        //        frameRate: 10,
-        //        repeat: -1
-        //    });
-        //    this.play('flap_anim');
-        // }
+        // Play flap animation if assets are loaded and animation exists
+        if (textureKey === BIRD_KEY && scene.anims.exists('flap_anim')) { 
+           this.play('flap_anim'); 
+        }
 
         scene.add.existing(this);
         scene.physics.add.existing(this);
@@ -51,6 +42,14 @@ export class Bird extends Phaser.Physics.Arcade.Sprite {
     flap() {
         if (this.scene.game.stateMachine && this.scene.game.stateMachine.getCurrentState() === 'running') {
             this.body.velocity.y = this.flapVelocity;
+            // Play wing sound if available
+            if (this.scene.sound.get('wing')) {
+                this.scene.sound.play('wing');
+            }
+            // Play flap animation if available and not already playing (or restart it)
+            if (this.anims.exists('flap_anim')) {
+                this.play('flap_anim', true); // true to restart animation if already playing
+            }
         }
     }
 

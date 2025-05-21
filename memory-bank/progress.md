@@ -17,9 +17,10 @@
 – Scoring system with current score and session high score display implemented.
 – Input handling refined for consistent tap/click/spacebar for game states.
 – Game Over screen enhanced with clearer score display and delayed restart.
+– Actual game assets (sprites and audio) integrated. Bird has flapping animation and sounds are played for flap, score, hit, and game over events.
 
 ## What's Left to Build
-Mostly complete with placeholder graphics:
+Mostly complete:
 
 • Project scaffolding & build pipeline (Initial setup done, basic Phaser/Vite configured)
 • Game loop + state machine (Basic Phaser game loop and state machine skeleton in place)
@@ -28,11 +29,11 @@ Mostly complete with placeholder graphics:
 • Collision detection (Bird with ground, top, and pipes implemented)
 • Score tracking & UI overlays (Implemented, Game Over screen enhanced)
 • Input handling (mouse, touch, keyboard) (Refined for game states)
-• Asset integration (graphics, sounds) (Code prepared for asset files, actual files needed)
+• Asset integration (graphics, sounds) (Completed with actual sprites and audio)
 • Deployment pipeline
 
 ## Current Status
-Day 0 – groundwork. Core gameplay mechanics and UI flow are functional with placeholder graphics. Code is prepared for actual asset files. Game Over screen is enhanced.
+Core gameplay mechanics and UI flow are functional with actual game assets. Bird animation and sound effects are implemented. Next focus is on thorough testing and then deployment.
 
 ## Known Issues
 None – development not started. 

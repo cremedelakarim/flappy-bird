@@ -51,11 +51,27 @@ function preload() {
     // Preload assets here
     console.log("Preloading assets...");
 
-    // Placeholder for game assets - replace with actual paths and uncomment
-    // this.load.image('background', 'assets/background_day.png');
-    // this.load.image('ground_tile', 'assets/ground_base.png'); // Assuming a tileable ground
-    // this.load.spritesheet('bird_sheet', 'assets/bird.png', { frameWidth: 34, frameHeight: 24 });
-    // this.load.image('pipe_green', 'assets/pipe_green.png');
+    // Background & ground
+    this.load.image('background',  'assets/sprites/background-day.png');
+    this.load.image('ground_tile', 'assets/sprites/base.png');
+
+    // Bird
+    this.load.image('bird_sheet',  'assets/sprites/yellowbird-midflap.png'); // Default bird sprite
+    this.load.image('yellowbird-up',   'assets/sprites/yellowbird-upflap.png');
+    this.load.image('yellowbird-mid',  'assets/sprites/yellowbird-midflap.png');
+    this.load.image('yellowbird-down', 'assets/sprites/yellowbird-downflap.png');
+
+
+    // Pipes
+    this.load.image('pipe_green',  'assets/sprites/pipe-green.png');
+
+    // Audio
+    this.load.audio('wing',  'assets/audio/wing.wav'); // .wav for broader compatibility initially
+    this.load.audio('hit',   'assets/audio/hit.wav');
+    this.load.audio('die',   'assets/audio/die.wav');
+    this.load.audio('point', 'assets/audio/point.wav');
+    this.load.audio('swoosh', 'assets/audio/swoosh.wav');
+
 
     // Load high score from local storage
     highScore = parseInt(localStorage.getItem('flappyHighScore')) || 0;
@@ -65,6 +81,9 @@ function create() {
     // Set up game objects and logic here
     console.log("Game created!");
     // this.add.text(config.width / 2, config.height / 2, 'Hello Phaser!', { fontSize: '32px', fill: '#fff' }).setOrigin(0.5); // Remove placeholder text
+
+    // Background - Add the background image
+    this.add.image(config.width / 2, config.height / 2, 'background').setOrigin(0.5, 0.5);
 
     // FPS counter
     fpsText = this.add.text(10, 10, 'FPS: --', { fontSize: '16px', fill: '#0f0' });
@@ -79,6 +98,18 @@ function create() {
     highScoreText = this.add.text(this.cameras.main.centerX, 100, 'Best: ' + highScore, SCORE_TEXT_STYLE).setOrigin(0.5);
     highScoreText.setScrollFactor(0);
     highScoreText.setVisible(false);
+
+    // Bird Animation
+    this.anims.create({
+        key: 'flap_anim',
+        frames: [
+            { key: 'yellowbird-up'   },
+            { key: 'yellowbird-mid'  },
+            { key: 'yellowbird-down' }
+        ],
+        frameRate: 10,
+        repeat: -1
+    });
 
     // Initialize PipeGroup
     pipeGroup = new PipeGroup(this);
@@ -142,14 +173,26 @@ function create() {
     this.game.stateMachine.addState(States.RUNNING, {
         onEnter: (scene) => {
             console.log("Entered RUNNING state");
+            scene.sound.play('swoosh'); // Play swoosh sound when game starts/restarts
             scoreText.setVisible(true);
             // Create/show ground
             if (!ground) {
-                ground = scene.add.rectangle(0, config.height - 50, config.width, 100, 0x8B4513).setOrigin(0,0);
+                ground = scene.add.tileSprite(0, config.height - 50, config.width, 100, 'ground_tile').setOrigin(0,0);
                 scene.physics.add.existing(ground, true);
             } else {
                 ground.setVisible(true);
+                // Ensure ground is a tileSprite if it was re-created or of a different type
+                if (!(ground instanceof Phaser.GameObjects.TileSprite)) {
+                    ground.destroy(); // Remove old ground if it wasn't a tile sprite
+                    ground = scene.add.tileSprite(0, config.height - 50, config.width, 100, 'ground_tile').setOrigin(0,0);
+                    scene.physics.add.existing(ground, true);
+                } else {
+                    ground.setTexture('ground_tile'); // Ensure correct texture if reused
+                    ground.width = config.width; // Ensure width is correct
+                    ground.height = 100; // Ensure height is correct
+                }
             }
+            ground.setDepth(10); // Ensure ground is rendered above background but below bird/pipes
 
             // Create/show bird
             if (!bird) {
@@ -170,6 +213,8 @@ function create() {
             scene.physics.add.collider(bird, ground, () => {
                 if (scene.game.stateMachine.getCurrentState() === States.RUNNING) {
                     console.log("Collision with ground detected!");
+                    scene.sound.play('hit');
+                    scene.time.delayedCall(200, () => scene.sound.play('die'));
                     scene.game.stateMachine.setState(States.GAMEOVER);
                 }
             });
@@ -178,6 +223,8 @@ function create() {
             scene.physics.add.collider(bird, pipeGroup, (collidedBird, collidedPipe) => {
                  if (scene.game.stateMachine.getCurrentState() === States.RUNNING) {
                     console.log("Collision with pipe detected!");
+                    scene.sound.play('hit');
+                    scene.time.delayedCall(200, () => scene.sound.play('die'));
                     scene.game.stateMachine.setState(States.GAMEOVER);
                 }
             });
@@ -194,6 +241,7 @@ function create() {
                     if (pipe.active && pipe.isScoreTarget && !pipe.passed && bird && pipe.getBounds().right < bird.getBounds().left) {
                         score++;
                         scoreText.setText('Score: ' + score);
+                        scene.sound.play('point'); // Play point sound
                         console.log("Score: ", score, "Pipe Pair ID: ", pipe.pairId);
                         
                         // Update difficulty based on the new score
@@ -211,6 +259,7 @@ function create() {
             }
             if (bird && bird.y < 0 && scene.game.stateMachine.getCurrentState() === States.RUNNING) {
                 console.log("Collision with top boundary detected!");
+                scene.sound.play('hit'); // Play hit sound for top boundary collision as well
                 scene.game.stateMachine.setState(States.GAMEOVER);
             }
         },

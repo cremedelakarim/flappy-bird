@@ -28,7 +28,7 @@ We are at project inception. Immediate tasks:
 8. ~~Create and manage obstacles (Pipes) (Corresponds to Roadmap Step 6).~~ (Completed)
 9. ~~Implement Scoring System (Corresponds to Roadmap Step 8).~~ (Completed)
 10. ~~Refine input handling (Corresponds to Roadmap Step 11) - Ensure consistent tap/click/spacebar across states and disable during transitions if necessary.~~ (Completed)
-11. ~~Implement actual game assets (Corresponds to Roadmap Step 3, revisiting with actual assets now that systems are in place).~~ (Code updated to reference standard asset keys, ready for asset files)
+11. ~~Implement actual game assets (Corresponds to Roadmap Step 3, revisiting with actual assets now that systems are in place).~~ (Completed - Sprites and audio files copied, preload function updated, bird animation and sounds integrated)
 12. ~~Implement Game Over screen enhancements (e.g., show final score clearly, better restart prompt) - (Refinement of Roadmap Step 9).~~ (Completed)
 13. Testing and Debugging (Corresponds to Roadmap Step 13).
 
