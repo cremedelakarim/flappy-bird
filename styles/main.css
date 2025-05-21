@@ -1,0 +1,31 @@
+/* Basic styles */
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    overflow: hidden; /* Prevent scrollbars from canvas resizing */
+    background-color: #333; /* Background for the letterbox area */
+}
+
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#game-container {
+    /* This container will be used by Phaser to inject the canvas */
+    /* Phaser's scale manager will handle the canvas size and centering within this div */
+    /* We can add a border or other styling to the container itself if needed */
+    /* For example, to see its bounds: border: 1px dashed red; */
+    display: flex; /* Helps in centering if Phaser doesn't take full control */
+    justify-content: center;
+    align-items: center;
+}
+
+/* Removed direct canvas styling, Phaser's scale manager will handle it.
+canvas {
+    border: 1px solid #000;
+}
+*/ 
