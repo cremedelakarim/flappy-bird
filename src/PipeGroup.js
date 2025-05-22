@@ -10,14 +10,19 @@ const MAX_PIPE_VELOCITY_X = -300;
 const INITIAL_SPAWN_DELAY = 2000; // ms
 const SPAWN_DELAY_DECREMENT_PER_SCORE = 20; // ms
 const MIN_SPAWN_DELAY = 1000; // ms
+const INITIAL_PIPE_GAP      = 150;
+const MIN_PIPE_GAP          = 80;
+const INITIAL_PIPE_SPACING  = 250;
+const MIN_PIPE_SPACING      = 200;
+const DIFFICULTY_STEP_SCORE = 2;   // every 2 pts
 
 export class PipeGroup extends Phaser.Physics.Arcade.Group {
     constructor(scene) {
         super(scene.physics.world, scene);
 
         this.scene = scene;
-        this.pipeSpacing = 250; // Horizontal space between pipe pairs
-        this.pipeGap = 150;     // Vertical gap between upper and lower pipe
+        this.pipeSpacing = INITIAL_PIPE_SPACING; // Horizontal space between pipe pairs
+        this.pipeGap = INITIAL_PIPE_GAP;     // Vertical gap between upper and lower pipe
         this.pipeWidth = 80;    // Width of the pipe
         this.currentPipeVelocityX = INITIAL_PIPE_VELOCITY_X; // Use current, not fixed
         this.currentSpawnDelay = INITIAL_SPAWN_DELAY;
@@ -51,6 +56,18 @@ export class PipeGroup extends Phaser.Physics.Arcade.Group {
         if (Math.abs(this.currentPipeVelocityX) > Math.abs(MAX_PIPE_VELOCITY_X)) {
             this.currentPipeVelocityX = MAX_PIPE_VELOCITY_X;
         }
+
+        // Update pipe gap
+        this.pipeGap = Math.max(
+            MIN_PIPE_GAP,
+            INITIAL_PIPE_GAP - Math.floor(currentScore / DIFFICULTY_STEP_SCORE) * 2
+        );
+
+        // Update pipe spacing
+        this.pipeSpacing = Math.max(
+            MIN_PIPE_SPACING,
+            INITIAL_PIPE_SPACING - Math.floor(currentScore / DIFFICULTY_STEP_SCORE) * 2
+        );
 
         // Update spawn delay
         const minDelayFromSpacing = (this.pipeSpacing / Math.abs(this.currentPipeVelocityX)) * 1000;
@@ -140,6 +157,8 @@ export class PipeGroup extends Phaser.Physics.Arcade.Group {
         this.currentPipeVelocityX = INITIAL_PIPE_VELOCITY_X;
         this.currentSpawnDelay = INITIAL_SPAWN_DELAY;
         this.spawnTimer.delay = this.currentSpawnDelay;
+        this.pipeGap     = INITIAL_PIPE_GAP; // Reset pipe gap
+        this.pipeSpacing = INITIAL_PIPE_SPACING; // Reset pipe spacing
         
         // Spawn one immediately if the group is empty to get things started
         if (this.countActive(true) === 0) {

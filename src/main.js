@@ -43,6 +43,8 @@ let highScore = 0;
 let highScoreBoard; // Variable for the high score display
 let pauseOverlay; // For the transparent overlay
 let pauseText; // For the "Paused" message
+let background; // Variable for the background TileSprite
+let backgroundIsDay = true; // To track current background state
 
 const SCORE_TEXT_STYLE = { fontSize: '32px', fill: '#fff', fontStyle: 'bold' };
 const FINAL_SCORE_STYLE = { fontSize: '48px', fill: '#fff', fontStyle: 'bold' };
@@ -54,6 +56,7 @@ function preload() {
 
     // Background & ground
     this.load.image('background',  'assets/sprites/background-day.png');
+    this.load.image('background_night', 'assets/sprites/background-night.png'); // Added night background
     this.load.image('ground_tile', 'assets/sprites/base.png');
 
     // Bird
@@ -88,17 +91,18 @@ function create() {
 
     // Background - Add the background image
     // STEP 1: work out the uniform scale factor needed for full-height coverage
-    const bgTex      = this.textures.get('background').getSourceImage();
-    const bgScale    = config.height / bgTex.height;  // proportional (same for X & Y)
+    const bgTexDay      = this.textures.get('background').getSourceImage(); // Assuming 'background' is day
+    const bgScale    = config.height / bgTexDay.height;  // proportional (same for X & Y)
 
     // STEP 2: create a TileSprite that spans the whole viewport
     //         – TileSprite will automatically repeat the (scaled) texture sideways
-    const background = this.add.tileSprite(
+    background = this.add.tileSprite( // Assign to global 'background'
         0,                        // x
         0,                        // y
         config.width / bgScale,   // internal width before scaling
         config.height / bgScale,  // internal height before scaling
-        'background'              // texture key
+        'background',             // initial texture key (day)
+        this.scene               // Pass the scene context
     )
     .setOrigin(0, 0)              // align to top-left
     .setScale(bgScale)            // scale uniformly – full vertical fit
@@ -169,6 +173,17 @@ function create() {
             
             if (highScoreBoard) highScoreBoard.updateValue(highScore);
             if (highScoreBoard) highScoreBoard.show();
+
+            // Reset background to day
+            if (background) {
+                backgroundIsDay = true;
+                const bgTex      = scene.textures.get('background').getSourceImage();
+                const bgScale    = config.height / bgTex.height;
+                background.setTexture('background');
+                background.width = config.width / bgScale;
+                background.height = config.height / bgScale;
+                background.setScale(bgScale);
+            }
 
             if (ground) ground.setVisible(false);
             if (bird) bird.setVisible(false);
@@ -274,6 +289,17 @@ function create() {
                         
                         if (score > 0 && score % 10 === 0) {
                             if (scoreboard) scoreboard.celebrate();
+                            // Toggle background
+                            if (background) {
+                                backgroundIsDay = !backgroundIsDay;
+                                const newTextureKey = backgroundIsDay ? 'background' : 'background_night';
+                                const bgTex = scene.textures.get(newTextureKey).getSourceImage();
+                                const bgScale = config.height / bgTex.height;
+                                background.setTexture(newTextureKey);
+                                background.width = config.width / bgScale;
+                                background.height = config.height / bgScale;
+                                background.setScale(bgScale);
+                            }
                         }
 
                         // Update difficulty based on the new score
