@@ -34,6 +34,7 @@ We are at project inception. Immediate tasks:
 12. ~~Implement Game Over screen enhancements (e.g., show final score clearly, better restart prompt) - (Refinement of Roadmap Step 9).~~ (Completed)
 13. ~~Refine pipe rendering and spacing: ensure top pipes are inverted, all pipes connect to screen edges without visual gaps, and pipe pairs do not overlap.~~ (Completed)
 14. Testing and Debugging (Corresponds to Roadmap Step 13) - Focus on playability, performance across different scenarios, and collision accuracy.
+15. Implement sprite-based scoreboard for current score and high score (Corresponds to Roadmap Step 8 refinement).
 
 ## Active Decisions & Considerations
 • Prioritise minimal build tooling (lean towards Vite).

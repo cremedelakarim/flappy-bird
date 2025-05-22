@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { StateMachine, States } from './StateMachine.js';
 import { Bird } from './Bird.js';
 import { PipeGroup } from './PipeGroup.js';
+import { Scoreboard } from './Scoreboard.js';
 
 // Game Configuration
 const config = {
@@ -37,9 +38,9 @@ let ground; // Variable for the ground
 let bird; // Variable for the bird instance
 let pipeGroup; // Variable for the pipe group instance
 let score = 0;
-let scoreText;
+let scoreboard; // Variable for the current score display
 let highScore = 0;
-let highScoreText;
+let highScoreBoard; // Variable for the high score display
 let pauseOverlay; // For the transparent overlay
 let pauseText; // For the "Paused" message
 
@@ -61,9 +62,13 @@ function preload() {
     this.load.image('yellowbird-mid',  'assets/sprites/yellowbird-midflap.png');
     this.load.image('yellowbird-down', 'assets/sprites/yellowbird-downflap.png');
 
-
     // Pipes
     this.load.image('pipe_green',  'assets/sprites/pipe-green.png');
+
+    // Score Digits
+    for (let i = 0; i <= 9; i++) {
+        this.load.image(`digit_${i}`, `assets/sprites/${i}.png`);
+    }
 
     // Audio
     this.load.audio('wing',  'assets/audio/wing.wav'); // .wav for broader compatibility initially
@@ -71,7 +76,6 @@ function preload() {
     this.load.audio('die',   'assets/audio/die.wav');
     this.load.audio('point', 'assets/audio/point.wav');
     this.load.audio('swoosh', 'assets/audio/swoosh.wav');
-
 
     // Load high score from local storage
     highScore = parseInt(localStorage.getItem('flappyHighScore')) || 0;
@@ -107,15 +111,14 @@ function create() {
     fpsText = this.add.text(10, 10, 'FPS: --', { fontSize: '16px', fill: '#0f0' });
     fpsText.setScrollFactor(0); // Keep FPS counter fixed on screen
 
-    // Score Display
-    scoreText = this.add.text(this.cameras.main.centerX, 50, 'Score: 0', SCORE_TEXT_STYLE).setOrigin(0.5);
-    scoreText.setScrollFactor(0);
-    scoreText.setVisible(false);
+    // Initialize Scoreboard for current score (initially hidden)
+    scoreboard = new Scoreboard(this, this.cameras.main.centerX, 50, 1.8);
+    scoreboard.hide();
 
-    // High Score Display
-    highScoreText = this.add.text(this.cameras.main.centerX, 100, 'Best: ' + highScore, SCORE_TEXT_STYLE).setOrigin(0.5);
-    highScoreText.setScrollFactor(0);
-    highScoreText.setVisible(false);
+    // Initialize Scoreboard for high score (initially hidden, used in PRESTART and GAMEOVER)
+    // Centered, slightly lower than current score, smaller, and tinted
+    highScoreBoard = new Scoreboard(this, this.cameras.main.centerX, 100, 1.3, 0xcccccc);
+    highScoreBoard.hide();
 
     // Bird Animation
     this.anims.create({
@@ -161,8 +164,11 @@ function create() {
         onEnter: (scene) => {
             console.log("Entered PRESTART state");
             score = 0; // Reset score
-            scoreText.setText('Score: ' + score).setVisible(false);
-            highScoreText.setText('Best: ' + highScore).setVisible(true);
+            if (scoreboard) scoreboard.updateValue(score); // Update just in case, then hide
+            if (scoreboard) scoreboard.hide();
+            
+            if (highScoreBoard) highScoreBoard.updateValue(highScore);
+            if (highScoreBoard) highScoreBoard.show();
 
             if (ground) ground.setVisible(false);
             if (bird) bird.setVisible(false);
@@ -182,7 +188,7 @@ function create() {
         },
         onExit: (scene) => {
             console.log("Exited PRESTART state");
-            highScoreText.setVisible(false);
+            if (highScoreBoard) highScoreBoard.hide();
             if (pauseOverlay) pauseOverlay.setVisible(false);
             if (pauseText) pauseText.setVisible(false);
         }
@@ -192,7 +198,11 @@ function create() {
         onEnter: (scene) => {
             console.log("Entered RUNNING state");
             scene.sound.play('swoosh'); // Play swoosh sound when game starts/restarts
-            scoreText.setVisible(true);
+            
+            if (scoreboard) scoreboard.updateValue(score); // Ensure score is current
+            if (scoreboard) scoreboard.show();
+            if (highScoreBoard) highScoreBoard.hide(); // Ensure high score is not visible during running
+
             // Create/show ground
             if (!ground) {
                 ground = scene.add.tileSprite(0, config.height - 50, config.width, 100, 'ground_tile').setOrigin(0,0);
@@ -258,10 +268,14 @@ function create() {
                 pipeGroup.getChildren().forEach(pipe => {
                     if (pipe.active && pipe.isScoreTarget && !pipe.passed && bird && pipe.getBounds().right < bird.getBounds().left) {
                         score++;
-                        scoreText.setText('Score: ' + score);
+                        if (scoreboard) scoreboard.updateValue(score);
                         scene.sound.play('point'); // Play point sound
                         console.log("Score: ", score, "Pipe Pair ID: ", pipe.pairId);
                         
+                        if (score > 0 && score % 10 === 0) {
+                            if (scoreboard) scoreboard.celebrate();
+                        }
+
                         // Update difficulty based on the new score
                         pipeGroup.updateDifficulty(score);
 
@@ -285,7 +299,7 @@ function create() {
             console.log("Exited RUNNING state");
             if (bird) bird.setActive(false).setVisible(false);
             if (pipeGroup) pipeGroup.stopSpawningAndClear();
-            scoreText.setVisible(false);
+            if (scoreboard) scoreboard.hide();
         }
     });
 
@@ -305,24 +319,32 @@ function create() {
             }
 
             // Hide in-game score, show game over elements
-            scoreText.setVisible(false); 
+            if (scoreboard) scoreboard.hide();
 
             // Game Over Title
             let gameOverTitle = scene.add.text(scene.cameras.main.centerX, scene.cameras.main.height * 0.3, 'GAME OVER', { fontSize: '64px', fill: '#ff0000', fontStyle: 'bold' }).setOrigin(0.5);
-            // Final Score Display
-            let finalScoreText = scene.add.text(scene.cameras.main.centerX, scene.cameras.main.height * 0.5, 'Score: ' + finalScoreVal, FINAL_SCORE_STYLE).setOrigin(0.5);
-            // Best Score Display
-            let finalBestScoreText = scene.add.text(scene.cameras.main.centerX, scene.cameras.main.height * 0.6, 'Best: ' + highScore, FINAL_BEST_SCORE_STYLE).setOrigin(0.5);
+            // Final Score Display - Using sprite scoreboard
+            let finalScoreDisplay = new Scoreboard(scene, scene.cameras.main.centerX, scene.cameras.main.height * 0.5, 2.0, 0xffffff); // Larger scale for final score
+            finalScoreDisplay.updateValue(finalScoreVal);
+            finalScoreDisplay.show();
+            
+            // Best Score Display - Using sprite scoreboard
+            let finalBestScoreDisplay = new Scoreboard(scene, scene.cameras.main.centerX, scene.cameras.main.height * 0.6, 1.5, 0xcccccc); // Slightly smaller for best
+            finalBestScoreDisplay.updateValue(highScore);
+            finalBestScoreDisplay.show();
+
             // Restart Prompt
             let restartPromptText = scene.add.text(scene.cameras.main.centerX, scene.cameras.main.height * 0.75, 'Tap or Press Space to Restart', { fontSize: '24px', fill: '#fff' }).setOrigin(0.5);
             
             // Group game over elements for easy management if needed
-            let gameOverElements = scene.add.group([gameOverTitle, finalScoreText, finalBestScoreText, restartPromptText]);
+            let gameOverElements = scene.add.group([gameOverTitle, restartPromptText]); // Scoreboards are managed separately
 
             // Delay before enabling restart listeners
             scene.time.delayedCall(500, () => { // 500ms delay
                 const restartListener = () => {
-                    gameOverElements.destroy(true); // Destroy all elements in the group
+                    gameOverElements.destroy(true); // Destroy text elements
+                    finalScoreDisplay.destroy();    // Destroy final score sprite display
+                    finalBestScoreDisplay.destroy(); // Destroy best score sprite display
                     scene.game.stateMachine.setState(States.PRESTART);
                     spaceKey.off('down', restartListener);
                     scene.input.off('pointerdown', restartListener);
@@ -333,8 +355,8 @@ function create() {
         },
          onExit: (scene) => {
             console.log("Exited GAMEOVER state");
-            // Elements are destroyed in restartListener, no need to hide highScoreText here
-            // as PRESTART will manage its visibility.
+            // Elements are destroyed in restartListener.
+            // highScoreBoard will be managed by PRESTART's onEnter.
         }
     });
 
@@ -344,6 +366,7 @@ function create() {
             if (!pauseOverlay) {
                 pauseOverlay = scene.add.rectangle(0, 0, config.width, config.height, 0x000000, 0.5).setOrigin(0,0);
                 pauseOverlay.setScrollFactor(0);
+                pauseOverlay.setDepth(25); // Ensure pause overlay is behind scoreboard
             } else {
                 pauseOverlay.setVisible(true);
             }
@@ -389,6 +412,7 @@ function create() {
             }
             if (pipeGroup) {
                 pipeGroup.spawnTimer.paused = false;
+                // Scoreboard visibility is handled by the RUNNING state's onEnter
                 pipeGroup.getChildren().forEach(pipe => {
                     if (pipe.body) {
                          // Restore original velocity - needs to be stored or use PipeGroup's currentPipeVelocityX
