@@ -42,10 +42,8 @@ export class Bird extends Phaser.Physics.Arcade.Sprite {
     flap() {
         if (this.scene.game.stateMachine && this.scene.game.stateMachine.getCurrentState() === 'running') {
             this.body.velocity.y = this.flapVelocity;
-            // Play wing sound if available
-            if (this.scene.sound.get('wing')) {
-                this.scene.sound.play('wing');
-            }
+            // Play wing sound on every flap
+            this.scene.sound.play('wing');
             // Play flap animation if available and not already playing (or restart it)
             if (this.anims.exists('flap_anim')) {
                 this.play('flap_anim', true); // true to restart animation if already playing

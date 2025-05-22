@@ -53,10 +53,12 @@ export class PipeGroup extends Phaser.Physics.Arcade.Group {
         }
 
         // Update spawn delay
-        this.currentSpawnDelay = INITIAL_SPAWN_DELAY - (currentScore * SPAWN_DELAY_DECREMENT_PER_SCORE);
-        if (this.currentSpawnDelay < MIN_SPAWN_DELAY) {
-            this.currentSpawnDelay = MIN_SPAWN_DELAY;
-        }
+        const minDelayFromSpacing = (this.pipeSpacing / Math.abs(this.currentPipeVelocityX)) * 1000;
+        this.currentSpawnDelay = Math.max(
+            MIN_SPAWN_DELAY,
+            minDelayFromSpacing,
+            INITIAL_SPAWN_DELAY - (currentScore * SPAWN_DELAY_DECREMENT_PER_SCORE)
+        );
 
         // Update the existing timer's delay
         if (this.spawnTimer) {
@@ -65,10 +67,23 @@ export class PipeGroup extends Phaser.Physics.Arcade.Group {
     }
 
     spawnPipes() {
+        // Do not spawn if a previous pair is still within pipeSpacing of the right edge
+        // Ensure first pipe always spawns by checking if there are any active pipes yet.
+        if (this.countActive(true) > 0) { 
+            const rightmostPipeX = this.getChildren().reduce(
+                (max, p) => (p.active ? Math.max(max, p.x) : max),
+                -Infinity
+            );
+            if (rightmostPipeX > this.scene.game.config.width - this.pipeSpacing) {
+                return; // Too close – skip this spawn cycle
+            }
+        }
+
         if (this.scene.game.stateMachine.getCurrentState() !== 'running') {
             return; // Only spawn if game is running
         }
 
+        const gameWidth = this.scene.game.config.width;
         const gameHeight = this.scene.game.config.height;
         const groundHeight = 50; // Assuming ground height is 50
 
@@ -76,20 +91,34 @@ export class PipeGroup extends Phaser.Physics.Arcade.Group {
         const gapY = Phaser.Math.Between(this.pipeGap / 2 + 50, gameHeight - groundHeight - this.pipeGap / 2 - 50);
 
         // Upper pipe
-        const upperPipe = this.create(this.scene.game.config.width + this.pipeWidth / 2, gapY - this.pipeGap / 2, this.pipeTextureKey);
-        upperPipe.setOrigin(0.5, 1); // Origin at bottom-center
+        // Positioned at y=0, origin at its top, then flipped. displayHeight makes its visual top (opening) meet the gap.
+        const upperPipeX = gameWidth + this.pipeWidth / 2;
+        const upperPipe = this.create(upperPipeX, 0, this.pipeTextureKey);
+        upperPipe.setOrigin(0.5, 0); 
+        upperPipe.setFlipY(true); 
+        
+        const upperPipeOpeningY = gapY - this.pipeGap / 2;
+        upperPipe.displayHeight = upperPipeOpeningY;
+        
         upperPipe.body.setAllowGravity(false);
-        upperPipe.setVelocityX(this.currentPipeVelocityX); // Use current velocity
-        upperPipe.isScoreTarget = true; // Mark this pipe for scoring
-        upperPipe.pairId = Phaser.Math.RND.uuid(); // Unique ID for the pair
+        upperPipe.setVelocityX(this.currentPipeVelocityX); 
+        upperPipe.isScoreTarget = true; 
+        upperPipe.pairId = Phaser.Math.RND.uuid(); 
         
         // Lower pipe
-        const lowerPipe = this.create(this.scene.game.config.width + this.pipeWidth / 2, gapY + this.pipeGap / 2, this.pipeTextureKey);
-        lowerPipe.setOrigin(0.5, 0); // Origin at top-center
+        // Positioned with its visual top at the gap. displayHeight makes its visual bottom meet the ground.
+        const lowerPipeX = gameWidth + this.pipeWidth / 2;
+        const lowerPipeY = gapY + this.pipeGap / 2;
+        const lowerPipe = this.create(lowerPipeX, lowerPipeY, this.pipeTextureKey);
+        lowerPipe.setOrigin(0.5, 0); 
+
+        const groundY = gameHeight - groundHeight;
+        lowerPipe.displayHeight = groundY - lowerPipe.y; // lowerPipe.y is lowerPipeY here
+
         lowerPipe.body.setAllowGravity(false);
-        lowerPipe.setVelocityX(this.currentPipeVelocityX); // Use current velocity
-        lowerPipe.isScoreTarget = false; // Don't score for this one directly
-        lowerPipe.pairId = upperPipe.pairId; // Share the pair ID
+        lowerPipe.setVelocityX(this.currentPipeVelocityX); 
+        lowerPipe.isScoreTarget = false; 
+        lowerPipe.pairId = upperPipe.pairId; 
 
         // For scoring: mark that bird hasn't passed this pipe pair yet
         upperPipe.passed = false;

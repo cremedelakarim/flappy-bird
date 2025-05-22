@@ -83,7 +83,25 @@ function create() {
     // this.add.text(config.width / 2, config.height / 2, 'Hello Phaser!', { fontSize: '32px', fill: '#fff' }).setOrigin(0.5); // Remove placeholder text
 
     // Background - Add the background image
-    this.add.image(config.width / 2, config.height / 2, 'background').setOrigin(0.5, 0.5);
+    // STEP 1: work out the uniform scale factor needed for full-height coverage
+    const bgTex      = this.textures.get('background').getSourceImage();
+    const bgScale    = config.height / bgTex.height;  // proportional (same for X & Y)
+
+    // STEP 2: create a TileSprite that spans the whole viewport
+    //         – TileSprite will automatically repeat the (scaled) texture sideways
+    const background = this.add.tileSprite(
+        0,                        // x
+        0,                        // y
+        config.width / bgScale,   // internal width before scaling
+        config.height / bgScale,  // internal height before scaling
+        'background'              // texture key
+    )
+    .setOrigin(0, 0)              // align to top-left
+    .setScale(bgScale)            // scale uniformly – full vertical fit
+    .setScrollFactor(0);          // keep it fixed to the camera
+
+    // send it to the back (so pipes, bird, etc. draw on top)
+    background.setDepth(-10);
 
     // FPS counter
     fpsText = this.add.text(10, 10, 'FPS: --', { fontSize: '16px', fill: '#0f0' });

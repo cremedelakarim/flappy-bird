@@ -16,6 +16,8 @@ We are at project inception. Immediate tasks:
 – Installed Phaser and Vite dependencies.
 – Created basic index.html, src/main.js, and styles/main.css.
 – Updated npm scripts for Vite.
+– Implemented pipe rendering fixes: top pipes correctly inverted and glued to screen top, dynamic displayHeight used to ensure pipes visually reach screen edges without gaps, and pipe pair spacing logic adjusted to prevent overlaps.
+– Added wing sound effect on every bird flap.
 
 ## Next Steps
 1. ~~Complete framework evaluation (Phaser vs PixiJS) and record decision in techContext.md.~~ (Completed)
@@ -30,7 +32,8 @@ We are at project inception. Immediate tasks:
 10. ~~Refine input handling (Corresponds to Roadmap Step 11) - Ensure consistent tap/click/spacebar across states and disable during transitions if necessary.~~ (Completed)
 11. ~~Implement actual game assets (Corresponds to Roadmap Step 3, revisiting with actual assets now that systems are in place).~~ (Completed - Sprites and audio files copied, preload function updated, bird animation and sounds integrated)
 12. ~~Implement Game Over screen enhancements (e.g., show final score clearly, better restart prompt) - (Refinement of Roadmap Step 9).~~ (Completed)
-13. Testing and Debugging (Corresponds to Roadmap Step 13).
+13. ~~Refine pipe rendering and spacing: ensure top pipes are inverted, all pipes connect to screen edges without visual gaps, and pipe pairs do not overlap.~~ (Completed)
+14. Testing and Debugging (Corresponds to Roadmap Step 13) - Focus on playability, performance across different scenarios, and collision accuracy.
 
 ## Active Decisions & Considerations
 • Prioritise minimal build tooling (lean towards Vite).

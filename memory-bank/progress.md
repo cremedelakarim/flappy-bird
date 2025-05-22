@@ -17,7 +17,8 @@
 – Scoring system with current score and session high score display implemented.
 – Input handling refined for consistent tap/click/spacebar for game states.
 – Game Over screen enhanced with clearer score display and delayed restart.
-– Actual game assets (sprites and audio) integrated. Bird has flapping animation and sounds are played for flap, score, hit, and game over events.
+– Actual game assets (sprites and audio) integrated. Bird has flapping animation and sounds are played for flap, score, hit, and game over events. The wing sound now plays on every flap.
+– Pipe rendering improved: top pipes are inverted, all pipes connect visually to screen edges using dynamic `displayHeight` (preserving hitboxes), and pipe pair spacing is consistent, preventing overlaps.
 
 ## What's Left to Build
 Mostly complete:
@@ -25,15 +26,15 @@ Mostly complete:
 • Project scaffolding & build pipeline (Initial setup done, basic Phaser/Vite configured)
 • Game loop + state machine (Basic Phaser game loop and state machine skeleton in place)
 • Bird entity & physics (Implemented with placeholder/standard key graphics and basic flap/gravity)
-• Pipe generation & pooling (Implemented with placeholder/standard key graphics, basic movement, and collision)
-• Collision detection (Bird with ground, top, and pipes implemented)
+• Pipe generation & pooling (Implemented with actual graphics, correct rendering, spacing, and collision)
+• Collision detection (Bird with ground, top, and pipes implemented and verified)
 • Score tracking & UI overlays (Implemented, Game Over screen enhanced)
 • Input handling (mouse, touch, keyboard) (Refined for game states)
 • Asset integration (graphics, sounds) (Completed with actual sprites and audio)
 • Deployment pipeline
 
 ## Current Status
-Core gameplay mechanics and UI flow are functional with actual game assets. Bird animation and sound effects are implemented. Next focus is on thorough testing and then deployment.
+Core gameplay mechanics, rendering, and UI flow are functional with actual game assets. Pipe rendering and spacing issues are resolved. Bird animation and sound effects are implemented. Next focus is on thorough testing and then deployment.
 
 ## Known Issues
-None – development not started. 
+None currently. Previous pipe rendering/spacing issues are resolved. 
