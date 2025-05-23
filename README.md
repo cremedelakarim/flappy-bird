@@ -19,10 +19,9 @@ Follow these simple steps to get the game running on your local machine and star
 *   **Option A: Clone the Repository (Recommended for Developers)**
     If you have Git installed, open your terminal and run:
     ```bash
-    git clone https://github.com/YOUR_USERNAME/YOUR_REPOSITORY_NAME.git
-    cd YOUR_REPOSITORY_NAME
+    git clone https://github.com/cremedelakarim/flappy-bird.git
+    cd flappy-bird
     ```
-    *(Don't forget to replace `YOUR_USERNAME/YOUR_REPOSITORY_NAME` with the actual path to this repository!)*
 
 *   **Option B: Download ZIP**
     1.  On the GitHub repository page, click the green "Code" button.
