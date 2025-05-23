@@ -45,6 +45,13 @@ let pauseOverlay; // For the transparent overlay
 let pauseText; // For the "Paused" message
 let background; // Variable for the background TileSprite
 let backgroundIsDay = true; // To track current background state
+let menuMusic;             // <–– menu background-music instance
+
+// NEW: gameplay music references + state tracker
+let gameStartMusic;
+let secondLevelMusic;
+let thirdLevelMusic;
+let currentMusicLevel = 0;   // 0 = none, 1 = start, 2 = 20 pts, 3 = 40 pts
 
 const SCORE_TEXT_STYLE = { fontSize: '32px', fill: '#fff', fontStyle: 'bold' };
 const FINAL_SCORE_STYLE = { fontSize: '48px', fill: '#fff', fontStyle: 'bold' };
@@ -79,6 +86,12 @@ function preload() {
     this.load.audio('die',   'assets/audio/die.wav');
     this.load.audio('point', 'assets/audio/point.wav');
     this.load.audio('swoosh', 'assets/audio/swoosh.wav');
+    this.load.audio('menu_music', 'assets/audio/menu_music.mp3'); // <–– new
+
+    /* NEW gameplay music */
+    this.load.audio('game_start',   'assets/audio/game_start.mp3');
+    this.load.audio('second_level', 'assets/audio/second_level.mp3');
+    this.load.audio('third_level',  'assets/audio/third_level.mp3');
 
     // Load high score from local storage
     highScore = parseInt(localStorage.getItem('flappyHighScore')) || 0;
@@ -88,6 +101,16 @@ function create() {
     // Set up game objects and logic here
     console.log("Game created!");
     // this.add.text(config.width / 2, config.height / 2, 'Hello Phaser!', { fontSize: '32px', fill: '#fff' }).setOrigin(0.5); // Remove placeholder text
+
+    // Build the looping menu-music sound
+    menuMusic = this.sound.add('menu_music', { loop : true, volume : 0.5 });
+
+    /* NEW – instantiate the gameplay tracks (don't play yet) */
+    gameStartMusic   = this.sound.add('game_start',   { loop: true, volume: 0.5 });
+    secondLevelMusic = this.sound.add('second_level', { loop: true, volume: 0.5 });
+    thirdLevelMusic  = this.sound.add('third_level',  { loop: true, volume: 0.5 });
+
+    this.sound.pauseOnBlur = false; // Keep music playing if window loses focus (optional)
 
     // Background - Add the background image
     // STEP 1: work out the uniform scale factor needed for full-height coverage
@@ -167,6 +190,13 @@ function create() {
     this.game.stateMachine.addState(States.PRESTART, {
         onEnter: (scene) => {
             console.log("Entered PRESTART state");
+            // Command menu music to play.
+            // If audio context is locked (initial load), Phaser queues it.
+            // If audio context is unlocked (e.g., restart from game over), it will play.
+            if (menuMusic) {
+                menuMusic.play();
+            }
+            
             score = 0; // Reset score
             if (scoreboard) scoreboard.updateValue(score); // Update just in case, then hide
             if (scoreboard) scoreboard.hide();
@@ -193,7 +223,16 @@ function create() {
             
             const startListener = () => {
                 startText.destroy();
-                scene.game.stateMachine.setState(States.RUNNING);
+                // Audio context is unlocked by this interaction.
+                // menuMusic (commanded to play in onEnter) should start/continue now.
+                // Delay transition to RUNNING slightly so music is audible for a moment.
+                scene.time.delayedCall(100, () => { // 100ms delay, adjust if needed
+                    // Ensure we only transition if the game is still in PRESTART.
+                    // This prevents issues if the state changes rapidly for other reasons.
+                    if (scene.game.stateMachine.getCurrentState() === States.PRESTART) {
+                        scene.game.stateMachine.setState(States.RUNNING);
+                    }
+                });
                 spaceKey.off('down', startListener); // Clean up space listener
                 scene.input.off('pointerdown', startListener); // Clean up pointer listener
             };
@@ -212,7 +251,17 @@ function create() {
     this.game.stateMachine.addState(States.RUNNING, {
         onEnter: (scene) => {
             console.log("Entered RUNNING state");
+            // Stop menu music when game actually starts.
+            if (menuMusic && menuMusic.isPlaying) {
+                menuMusic.stop();
+            }
             scene.sound.play('swoosh'); // Play swoosh sound when game starts/restarts
+            
+            /* NEW – start level-1 music */
+            if (gameStartMusic) gameStartMusic.play({ seek: 4 }); // Start playback 4 seconds into the audio file
+            if (secondLevelMusic && secondLevelMusic.isPlaying) secondLevelMusic.stop();
+            if (thirdLevelMusic  && thirdLevelMusic.isPlaying)  thirdLevelMusic.stop();
+            currentMusicLevel = 1;
             
             if (scoreboard) scoreboard.updateValue(score); // Ensure score is current
             if (scoreboard) scoreboard.show();
@@ -287,6 +336,19 @@ function create() {
                         scene.sound.play('point'); // Play point sound
                         console.log("Score: ", score, "Pipe Pair ID: ", pipe.pairId);
                         
+                        /* NEW – switch tracks at 20 & 40 points */
+                        if (score >= 40 && currentMusicLevel < 3) {
+                            if (gameStartMusic && gameStartMusic.isPlaying) gameStartMusic.stop();
+                            if (secondLevelMusic && secondLevelMusic.isPlaying) secondLevelMusic.stop();
+                            if (thirdLevelMusic) thirdLevelMusic.play();
+                            currentMusicLevel = 3;
+                        } else if (score >= 20 && currentMusicLevel < 2) {
+                            if (gameStartMusic && gameStartMusic.isPlaying) gameStartMusic.stop();
+                            if (thirdLevelMusic  && thirdLevelMusic.isPlaying)  thirdLevelMusic.stop();
+                            if (secondLevelMusic) secondLevelMusic.play();
+                            currentMusicLevel = 2;
+                        }
+
                         if (score > 0 && score % 10 === 0) {
                             if (scoreboard) scoreboard.celebrate();
                             // Toggle background
@@ -326,12 +388,30 @@ function create() {
             if (bird) bird.setActive(false).setVisible(false);
             if (pipeGroup) pipeGroup.stopSpawningAndClear();
             if (scoreboard) scoreboard.hide();
+
+            /* NEW – stop gameplay music */
+            if (gameStartMusic  && gameStartMusic.isPlaying)  gameStartMusic.stop();
+            if (secondLevelMusic && secondLevelMusic.isPlaying) secondLevelMusic.stop();
+            if (thirdLevelMusic  && thirdLevelMusic.isPlaying)  thirdLevelMusic.stop();
+            currentMusicLevel = 0;
         }
     });
 
     this.game.stateMachine.addState(States.GAMEOVER, {
         onEnter: (scene) => {
             console.log("Entered GAMEOVER state");
+
+            /* NEW – ensure gameplay music is off before menu music */
+            if (gameStartMusic  && gameStartMusic.isPlaying)  gameStartMusic.stop();
+            if (secondLevelMusic && secondLevelMusic.isPlaying) secondLevelMusic.stop();
+            if (thirdLevelMusic  && thirdLevelMusic.isPlaying)  thirdLevelMusic.stop();
+            currentMusicLevel = 0;
+
+            // Play menu music on game over screen.
+            // Audio context should be unlocked by now.
+            if (menuMusic && !menuMusic.isPlaying) {
+                menuMusic.play();
+            }
             if(bird) {
                 bird.body.setAllowGravity(false);
                 bird.setVelocity(0,0);
