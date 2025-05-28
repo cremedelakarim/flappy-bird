@@ -3,6 +3,11 @@ import Phaser from 'phaser';
 const PIPE_KEY = 'pipe_green';
 const PIPE_PLACEHOLDER_KEY = 'pipe_placeholder';
 
+// NEW: Helper constants for pipe head and body
+const PIPE_HEAD_HEIGHT = 26; // px
+const PIPE_HEAD_KEY = 'pipe_green_head';
+const PIPE_BODY_KEY = 'pipe_green_body';
+
 // Difficulty Constants
 const INITIAL_PIPE_VELOCITY_X = -150;
 const PIPE_VELOCITY_X_INCREMENT_PER_SCORE = -2; // Increase speed (more negative)
@@ -23,10 +28,13 @@ export class PipeGroup extends Phaser.Physics.Arcade.Group {
         this.scene = scene;
         this.pipeSpacing = INITIAL_PIPE_SPACING; // Horizontal space between pipe pairs
         this.pipeGap = INITIAL_PIPE_GAP;     // Vertical gap between upper and lower pipe
-        this.pipeWidth = 80;    // Width of the pipe
+        this.pipeWidth = 52;    // NEW: Use native sprite width
         this.currentPipeVelocityX = INITIAL_PIPE_VELOCITY_X; // Use current, not fixed
         this.currentSpawnDelay = INITIAL_SPAWN_DELAY;
-        this.pipeTextureKey = PIPE_KEY;
+        this.pipeTextureKey = PIPE_KEY; // Default to original, will be replaced by dynamic textures
+
+        // NEW: Cache for generated pipe textures
+        this.generatedPipeTextures = {};
 
         if (!scene.textures.exists(PIPE_KEY)) {
             console.warn(`Texture '${PIPE_KEY}' not found. Using placeholder.`);
@@ -38,6 +46,24 @@ export class PipeGroup extends Phaser.Physics.Arcade.Group {
                 graphics.generateTexture(PIPE_PLACEHOLDER_KEY, this.pipeWidth, scene.game.config.height);
                 graphics.destroy();
             }
+        } else {
+            // NEW: Slice the original pipe texture into head and body parts
+            // Ensure this runs only once, even if PipeGroup is instantiated multiple times (though unlikely in this game)
+            if (!scene.textures.exists(PIPE_HEAD_KEY)) {
+                const pipeImage = scene.textures.get(PIPE_KEY).getSourceImage();
+                const canvas = scene.textures.createCanvas(PIPE_HEAD_KEY, pipeImage.width, PIPE_HEAD_HEIGHT).getSourceImage();
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(pipeImage, 0, 0, pipeImage.width, PIPE_HEAD_HEIGHT, 0, 0, pipeImage.width, PIPE_HEAD_HEIGHT);
+                scene.textures.get(PIPE_HEAD_KEY).refresh();
+            }
+            if (!scene.textures.exists(PIPE_BODY_KEY)) {
+                const pipeImage = scene.textures.get(PIPE_KEY).getSourceImage();
+                const bodyHeight = pipeImage.height - PIPE_HEAD_HEIGHT;
+                const canvas = scene.textures.createCanvas(PIPE_BODY_KEY, pipeImage.width, bodyHeight).getSourceImage();
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(pipeImage, 0, PIPE_HEAD_HEIGHT, pipeImage.width, bodyHeight, 0, 0, pipeImage.width, bodyHeight);
+                scene.textures.get(PIPE_BODY_KEY).refresh();
+            }
         }
 
         // Timer to spawn pipes
@@ -48,6 +74,63 @@ export class PipeGroup extends Phaser.Physics.Arcade.Group {
             loop: true
         });
         this.spawnTimer.paused = true; // Start paused
+    }
+
+    // NEW: Utility method to get or create a pipe texture of a specific height
+    getPipeTexture(height) {
+        if (height <= 0) {
+            // Should not happen, but handle gracefully
+            console.warn("Requested pipe texture with invalid height:", height);
+            // Return a placeholder or smallest valid texture if necessary
+            // For now, let's assume it defaults to a small visible texture
+            height = PIPE_HEAD_HEIGHT; // Minimum sensible height
+        }
+
+        const textureKey = `pipe_green_${Math.round(height)}`; // Round to avoid floating point issues in keys
+
+        if (this.generatedPipeTextures[textureKey]) {
+            return textureKey;
+        }
+
+        if (this.scene.textures.exists(textureKey)) {
+            this.generatedPipeTextures[textureKey] = true; // Add to our cache
+            return textureKey;
+        }
+
+        // Texture doesn't exist, create it
+        const headTexture = this.scene.textures.get(PIPE_HEAD_KEY);
+        const bodyTexture = this.scene.textures.get(PIPE_BODY_KEY);
+
+        if (!headTexture || !bodyTexture || headTexture.key === '__MISSING' || bodyTexture.key === '__MISSING') {
+            console.error("Pipe head or body base textures are missing. Cannot generate dynamic pipe texture.");
+            return this.pipeTextureKey; // Fallback to original full pipe or placeholder
+        }
+
+        const headSource = headTexture.getSourceImage();
+        const bodySource = bodyTexture.getSourceImage();
+
+        const newTextureWidth = headSource.width;
+        // Ensure body part is at least 1px to tile, head provides the rest
+        const bodyCanvasHeight = Math.max(1, height - PIPE_HEAD_HEIGHT);
+
+        const canvas = this.scene.textures.createCanvas(textureKey, newTextureWidth, height).getSourceImage();
+        const ctx = canvas.getContext('2d');
+
+        // Draw head
+        ctx.drawImage(headSource, 0, 0);
+
+        // Draw body (if height allows for it)
+        if (height > PIPE_HEAD_HEIGHT) {
+            const pattern = ctx.createPattern(bodySource, 'repeat-y');
+            ctx.fillStyle = pattern;
+            // Start drawing pattern just below the head
+            ctx.fillRect(0, PIPE_HEAD_HEIGHT, newTextureWidth, bodyCanvasHeight);
+        }
+        
+        this.scene.textures.get(textureKey).refresh();
+        this.generatedPipeTextures[textureKey] = true;
+
+        return textureKey;
     }
 
     updateDifficulty(currentScore) {
@@ -108,14 +191,14 @@ export class PipeGroup extends Phaser.Physics.Arcade.Group {
         const gapY = Phaser.Math.Between(this.pipeGap / 2 + 50, gameHeight - groundHeight - this.pipeGap / 2 - 50);
 
         // Upper pipe
-        // Positioned at y=0, origin at its top, then flipped. displayHeight makes its visual top (opening) meet the gap.
         const upperPipeX = gameWidth + this.pipeWidth / 2;
-        const upperPipe = this.create(upperPipeX, 0, this.pipeTextureKey);
+        const upperPipeOpeningY = gapY - this.pipeGap / 2;
+        const upperPipeHeight = upperPipeOpeningY;
+        const upperPipeTextureKey = this.getPipeTexture(upperPipeHeight);
+        
+        const upperPipe = this.create(upperPipeX, 0, upperPipeTextureKey);
         upperPipe.setOrigin(0.5, 0); 
         upperPipe.setFlipY(true); 
-        
-        const upperPipeOpeningY = gapY - this.pipeGap / 2;
-        upperPipe.displayHeight = upperPipeOpeningY;
         
         upperPipe.body.setAllowGravity(false);
         upperPipe.setVelocityX(this.currentPipeVelocityX); 
@@ -123,14 +206,14 @@ export class PipeGroup extends Phaser.Physics.Arcade.Group {
         upperPipe.pairId = Phaser.Math.RND.uuid(); 
         
         // Lower pipe
-        // Positioned with its visual top at the gap. displayHeight makes its visual bottom meet the ground.
         const lowerPipeX = gameWidth + this.pipeWidth / 2;
         const lowerPipeY = gapY + this.pipeGap / 2;
-        const lowerPipe = this.create(lowerPipeX, lowerPipeY, this.pipeTextureKey);
-        lowerPipe.setOrigin(0.5, 0); 
-
         const groundY = gameHeight - groundHeight;
-        lowerPipe.displayHeight = groundY - lowerPipe.y; // lowerPipe.y is lowerPipeY here
+        const lowerPipeHeight = groundY - lowerPipeY;
+        const lowerPipeTextureKey = this.getPipeTexture(lowerPipeHeight);
+
+        const lowerPipe = this.create(lowerPipeX, lowerPipeY, lowerPipeTextureKey);
+        lowerPipe.setOrigin(0.5, 0); 
 
         lowerPipe.body.setAllowGravity(false);
         lowerPipe.setVelocityX(this.currentPipeVelocityX); 
