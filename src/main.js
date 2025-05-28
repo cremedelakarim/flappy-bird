@@ -30,8 +30,21 @@ const config = {
     stateMachine: null // Placeholder for state machine instance
 };
 
-// Create a new Phaser game instance
-const game = new Phaser.Game(config);
+// Make sure the custom "Minecrafter" font is fully loaded BEFORE we boot Phaser.
+let game;
+const bootGame = () => {
+  if (!game) game = new Phaser.Game(config);
+};
+
+if (document.fonts && document.fonts.load) {
+  // Trigger the fetch for the font, then boot Phaser when done.
+  document.fonts.load('16px "Minecrafter"')
+    .then(bootGame)
+    .catch(bootGame);   // fall back if something goes wrong
+} else {
+  // Very old browsers: boot once the page is completely loaded.
+  window.addEventListener('load', bootGame);
+}
 
 let fpsText;
 let ground; // Variable for the ground
@@ -179,7 +192,11 @@ function create() {
     background.setDepth(-10);
 
     // FPS counter
-    fpsText = this.add.text(10, 10, 'FPS: --', { fontSize: '16px', fill: '#0f0' });
+    fpsText = this.add.text(10, 10, 'FPS: --', {
+        fontFamily: 'Minecrafter',
+        fontSize  : '16px',
+        fill      : '#0f0'
+    });
     fpsText.setScrollFactor(0); // Keep FPS counter fixed on screen
 
     // Initialize Scoreboard for current score (initially hidden)
@@ -264,7 +281,11 @@ function create() {
 
             /* NEW */
             if (bestScoreLabel) {
-                bestScoreLabel.setY(highScoreBoard.y + highScoreBoard.displayHeight/2 + 20); // Increased offset from 8 to 20
+                // Position the "BEST SCORE" label just **below** the bottom
+                // edge of the digit sprites so there is no overlap, whatever
+                // size the scoreboard happens to be.
+                const bounds = highScoreBoard.getBounds();
+                bestScoreLabel.setY(bounds.bottom + 20);
                 bestScoreLabel.setVisible(true);
             }
 
@@ -283,7 +304,12 @@ function create() {
             if (bird) bird.setVisible(false);
             if (pipeGroup) pipeGroup.stopSpawningAndClear();
 
-            let startText = scene.add.text(scene.cameras.main.centerX, scene.cameras.main.centerY, 'Tap or Press Space to Start', { fontSize: '28px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
+            let startText = scene.add.text(
+                scene.cameras.main.centerX,
+                scene.cameras.main.centerY,
+                'TAP OR PRESS SPACE TO START',
+                { fontFamily: 'Minecrafter', fontSize: '28px', fill: '#fff', fontStyle: 'bold' }
+            ).setOrigin(0.5);
             
             const startListener = () => {
                 startText.destroy();
@@ -521,7 +547,12 @@ function create() {
             if (scoreboard) scoreboard.hide();
 
             // Game Over Title
-            let gameOverTitle = scene.add.text(scene.cameras.main.centerX, scene.cameras.main.height * 0.3, 'GAME OVER', { fontSize: '64px', fill: '#ff0000', fontStyle: 'bold' }).setOrigin(0.5);
+            let gameOverTitle = scene.add.text(
+                scene.cameras.main.centerX,
+                scene.cameras.main.height * 0.3,
+                'GAME OVER',
+                { fontFamily: 'Minecrafter', fontSize: '64px', fill: '#ff0000', fontStyle: 'bold' }
+            ).setOrigin(0.5);
             // Final Score Display - Using sprite scoreboard
             let finalScoreDisplay = new Scoreboard(scene, scene.cameras.main.centerX, scene.cameras.main.height * 0.5, 2.0, 0xffffff); // Larger scale for final score
             finalScoreDisplay.updateValue(finalScoreVal);
@@ -533,7 +564,12 @@ function create() {
             finalBestScoreDisplay.show();
 
             // Restart Prompt
-            let restartPromptText = scene.add.text(scene.cameras.main.centerX, scene.cameras.main.height * 0.75, 'Tap or Press Space to Restart', { fontSize: '24px', fill: '#fff' }).setOrigin(0.5);
+            let restartPromptText = scene.add.text(
+                scene.cameras.main.centerX,
+                scene.cameras.main.height * 0.75,
+                'TAP OR PRESS SPACE TO RESTART',
+                { fontFamily: 'Minecrafter', fontSize: '24px', fill: '#fff' }
+            ).setOrigin(0.5);
             
             // Group game over elements for easy management if needed
             let gameOverElements = scene.add.group([gameOverTitle, restartPromptText]); // Scoreboards are managed separately
@@ -570,7 +606,12 @@ function create() {
                 pauseOverlay.setVisible(true);
             }
             if (!pauseText) {
-                pauseText = scene.add.text(scene.cameras.main.centerX, scene.cameras.main.centerY, 'Paused - Tap or Press Space to Resume', { fontSize: '28px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
+                pauseText = scene.add.text(
+                    scene.cameras.main.centerX,
+                    scene.cameras.main.centerY,
+                    'PAUSED - TAP OR PRESS SPACE TO RESUME',
+                    { fontFamily: 'Minecrafter', fontSize: '28px', fill: '#fff', fontStyle: 'bold' }
+                ).setOrigin(0.5);
                 pauseText.setScrollFactor(0);
             } else {
                 pauseText.setVisible(true);
