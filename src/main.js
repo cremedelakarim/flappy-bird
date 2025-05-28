@@ -41,6 +41,7 @@ let score = 0;
 let scoreboard; // Variable for the current score display
 let highScore = 0;
 let highScoreBoard; // Variable for the high score display
+let bestScoreLabel;   // NEW – "BEST SCORE" bitmap-text label
 let pauseOverlay; // For the transparent overlay
 let pauseText; // For the "Paused" message
 let background; // Variable for the background TileSprite
@@ -51,6 +52,9 @@ let menuMusic;             // <–– menu background-music instance
 let gameStartMusic;
 let secondLevelMusic;
 let thirdLevelMusic;
+let fourthLevelMusic; // NEW
+let fifthLevelMusic;  // NEW
+let sixthLevelMusic;  // NEW
 let currentMusicLevel = 0;   // 0 = none, 1 = start, 2 = 20 pts, 3 = 40 pts
 
 // NEW – how long one side of the cross-fade lasts (ms)
@@ -126,6 +130,9 @@ function preload() {
     this.load.audio('game_start',   'assets/audio/game_start.mp3');
     this.load.audio('second_level', 'assets/audio/second_level.mp3');
     this.load.audio('third_level',  'assets/audio/third_level.mp3');
+    this.load.audio('fourth_level', 'assets/audio/fourth_level.wav'); // NEW
+    this.load.audio('fifth_level',  'assets/audio/fifth_level.wav');  // NEW
+    this.load.audio('sixth_level',  'assets/audio/sixth_level.wav');  // NEW
 
     // Load high score from local storage
     highScore = parseInt(localStorage.getItem('flappyHighScore')) || 0;
@@ -143,6 +150,9 @@ function create() {
     gameStartMusic   = this.sound.add('game_start',   { loop: true, volume: 0.5 });
     secondLevelMusic = this.sound.add('second_level', { loop: true, volume: 0.5 });
     thirdLevelMusic  = this.sound.add('third_level',  { loop: true, volume: 0.5 });
+    fourthLevelMusic = this.sound.add('fourth_level', { loop: true, volume: 0.5 }); // NEW
+    fifthLevelMusic  = this.sound.add('fifth_level',  { loop: true, volume: 0.5 });  // NEW
+    sixthLevelMusic  = this.sound.add('sixth_level',  { loop: true, volume: 0.5 });  // NEW
 
     this.sound.pauseOnBlur = false; // Keep music playing if window loses focus (optional)
 
@@ -180,6 +190,20 @@ function create() {
     // Centered, slightly lower than current score, smaller, and tinted
     highScoreBoard = new Scoreboard(this, this.cameras.main.centerX, 100, 1.3, 0xcccccc);
     highScoreBoard.hide();
+
+    /* NEW – label that sits just underneath the high-score digits  */
+    bestScoreLabel = this.add.text(
+        this.cameras.main.centerX,
+        highScoreBoard.y + 40, // You might need to adjust this Y position
+        'BEST SCORE',
+        {
+            fontFamily: 'Minecrafter',
+            fontSize: '24px', // Adjust size as needed
+            fill: '#cccccc',
+            align: 'center'
+        }
+    ).setOrigin(0.5)
+     .setVisible(false);
 
     // Bird Animation
     this.anims.create({
@@ -238,6 +262,12 @@ function create() {
             if (highScoreBoard) highScoreBoard.updateValue(highScore);
             if (highScoreBoard) highScoreBoard.show();
 
+            /* NEW */
+            if (bestScoreLabel) {
+                bestScoreLabel.setY(highScoreBoard.y + highScoreBoard.displayHeight/2 + 20); // Increased offset from 8 to 20
+                bestScoreLabel.setVisible(true);
+            }
+
             // Reset background to day
             if (background) {
                 backgroundIsDay = true;
@@ -277,6 +307,7 @@ function create() {
         onExit: (scene) => {
             console.log("Exited PRESTART state");
             if (highScoreBoard) highScoreBoard.hide();
+            if (bestScoreLabel) bestScoreLabel.setVisible(false);   // NEW
             if (pauseOverlay) pauseOverlay.setVisible(false);
             if (pauseText) pauseText.setVisible(false);
         }
@@ -302,6 +333,9 @@ function create() {
             }
             if (secondLevelMusic && secondLevelMusic.isPlaying) secondLevelMusic.stop();
             if (thirdLevelMusic  && thirdLevelMusic.isPlaying)  thirdLevelMusic.stop();
+            if (fourthLevelMusic && fourthLevelMusic.isPlaying) fourthLevelMusic.stop(); // NEW
+            if (fifthLevelMusic  && fifthLevelMusic.isPlaying)  fifthLevelMusic.stop();  // NEW
+            if (sixthLevelMusic  && sixthLevelMusic.isPlaying)  sixthLevelMusic.stop();  // NEW
             currentMusicLevel = 1;
             
             if (scoreboard) scoreboard.updateValue(score); // Ensure score is current
@@ -378,7 +412,22 @@ function create() {
                         console.log("Score: ", score, "Pipe Pair ID: ", pipe.pairId);
                         
                         /* NEW – cross-fade at the 20- and 40-point milestones */
-                        if (score >= 40 && currentMusicLevel < 3) {
+                        if (score >= 100 && currentMusicLevel < 6) { // NEW
+                            crossFade(scene,
+                                      currentMusicLevel === 5 ? fifthLevelMusic : fourthLevelMusic, // Adjusted
+                                      sixthLevelMusic,
+                                      6);
+                        } else if (score >= 80 && currentMusicLevel < 5) { // NEW
+                            crossFade(scene,
+                                      currentMusicLevel === 4 ? fourthLevelMusic : thirdLevelMusic, // Adjusted
+                                      fifthLevelMusic,
+                                      5);
+                        } else if (score >= 60 && currentMusicLevel < 4) { // NEW
+                            crossFade(scene,
+                                      currentMusicLevel === 3 ? thirdLevelMusic : secondLevelMusic, // Adjusted
+                                      fourthLevelMusic,
+                                      4);
+                        } else if (score >= 40 && currentMusicLevel < 3) {
                             crossFade(scene,
                                       currentMusicLevel === 2 ? secondLevelMusic : gameStartMusic,
                                       thirdLevelMusic,
@@ -431,6 +480,9 @@ function create() {
             if (gameStartMusic  && gameStartMusic.isPlaying)  gameStartMusic.stop();
             if (secondLevelMusic && secondLevelMusic.isPlaying) secondLevelMusic.stop();
             if (thirdLevelMusic  && thirdLevelMusic.isPlaying)  thirdLevelMusic.stop();
+            if (fourthLevelMusic && fourthLevelMusic.isPlaying) fourthLevelMusic.stop(); // NEW
+            if (fifthLevelMusic  && fifthLevelMusic.isPlaying)  fifthLevelMusic.stop();  // NEW
+            if (sixthLevelMusic  && sixthLevelMusic.isPlaying)  sixthLevelMusic.stop();  // NEW
             currentMusicLevel = 0;
         }
     });
@@ -443,6 +495,9 @@ function create() {
             if (gameStartMusic  && gameStartMusic.isPlaying)  gameStartMusic.stop();
             if (secondLevelMusic && secondLevelMusic.isPlaying) secondLevelMusic.stop();
             if (thirdLevelMusic  && thirdLevelMusic.isPlaying)  thirdLevelMusic.stop();
+            if (fourthLevelMusic && fourthLevelMusic.isPlaying) fourthLevelMusic.stop(); // NEW
+            if (fifthLevelMusic  && fifthLevelMusic.isPlaying)  fifthLevelMusic.stop();  // NEW
+            if (sixthLevelMusic  && sixthLevelMusic.isPlaying)  sixthLevelMusic.stop();  // NEW
             currentMusicLevel = 0;
 
             // Play menu music on game over screen.

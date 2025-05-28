@@ -1,3 +1,10 @@
+@font-face {
+    font-family: 'Minecrafter';
+    src: url('../assets/fonts/Minecrafter.Reg.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
 /* Basic styles */
 html, body {
     margin: 0;
