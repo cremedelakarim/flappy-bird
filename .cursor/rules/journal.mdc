@@ -3,3 +3,26 @@ description:
 globs:
 alwaysApply: false
 ---
+# Project Journal (.cursor/rules/journal.mdc)
+
+This journal captures important patterns, preferences, and project intelligence to improve work efficiency and recall.
+
+## Key Learnings & Patterns
+
+### 1. Phaser: Dynamic Visuals vs. Static Hitboxes (Pipes)
+*   **Context**: Pipes needed to visually stretch to the top/bottom of the screen to avoid gaps, but their hitboxes (physics bodies) needed to remain a fixed size around the actual passage area and not be affected by the visual stretching.
+*   **Pattern**: In Phaser, you can set `gameObject.displayHeight` and `gameObject.displayWidth` to change the rendered size of a sprite without affecting its physics body by default (assuming `gameObject.body.syncBounds` is `false`, which is the default for Arcade Physics bodies if not explicitly set to `true`).
+*   **Implementation (Pipes Example)**:
+    *   Upper pipe: Positioned at `y=0`, origin `(0.5,0)`, `setFlipY(true)`. `displayHeight` calculated to make its visual opening meet the top of the game gap.
+    *   Lower pipe: Positioned at the bottom of the game gap, origin `(0.5,0)`. `displayHeight` calculated to make its visual bottom meet the game ground.
+*   **Benefit**: Achieves desired visual appearance (no gaps) while maintaining accurate, predictable collision detection based on the original sprite dimensions around the intended interactive areas.
+
+### 2. Phaser: Controlled Object Spacing in `Phaser.Physics.Arcade.Group`
+*   **Context**: Ensure that procedurally spawned objects (like pipe pairs) maintain a minimum horizontal distance from each other, even as spawn rates and object speeds change with game difficulty.
+*   **Pattern**: 
+    1.  **Reactive Check**: Before spawning a new object, iterate through existing active objects in the group to find the position of the one closest to the spawn edge (e.g., rightmost x-coordinate for objects moving left). If this position is too close (e.g., `rightmostPipeX > screenWidth - desiredSpacing`), skip the current spawn cycle.
+    2.  **Proactive Timer Adjustment**: When game parameters affecting speed or spawn frequency change (e.g., score increases), recalculate the spawn timer's delay. This can include a factor based on the desired spacing and current object velocity (`minDelay = (desiredSpacing / currentVelocity) * 1000`). The actual delay used should be the maximum of this calculated minimum, a global minimum spawn delay, and the difficulty-adjusted base delay.
+*   **Implementation (Pipes Example)**:
+    *   `spawnPipes()`: Added a check at the start: if `countActive(true) > 0`, reduce children to find `rightmostPipeX`. If `rightmostPipeX > game.config.width - this.pipeSpacing`, then `return` (skip spawn).
+    *   `updateDifficulty()`: `this.spawnTimer.delay` is updated using `Math.max(MIN_SPAWN_DELAY, minDelayFromSpacing, calculatedDifficultyDelay)`.
+*   **Benefit**: Prevents impossible gameplay scenarios caused by overlapping or too-closely-packed obstacles, improving fairness and playability.

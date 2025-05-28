@@ -20,6 +20,7 @@ We are at project inception. Immediate tasks:
 – Added wing sound effect on every bird flap.
 – Implemented menu background music that plays during PRESTART and GAMEOVER states, and stops during RUNNING state. Addressed initial browser audio autoplay restrictions.
 – Implemented gameplay music: "game_start.mp3" (starting 4 seconds in) plays when the game starts, "second_level.mp3" plays at 20 points, and "third_level.mp3" plays at 40 points. Music stops on game over or when returning to menu.
+– Implemented smoother cross-fading between gameplay music tracks at score milestones (20 and 40 points) using Phaser's tweening system for volume changes.
 
 ## Next Steps
 1. ~~Complete framework evaluation (Phaser vs PixiJS) and record decision in techContext.md.~~ (Completed)

@@ -18,9 +18,9 @@
 – Input handling refined for consistent tap/click/spacebar for game states.
 – Game Over screen enhanced with clearer score display and delayed restart.
 – Actual game assets (sprites and audio) integrated. Bird has flapping animation and sounds are played for flap, score, hit, and game over events. The wing sound now plays on every flap. Menu background music implemented for menu states, respecting browser autoplay policies.
-– Pipe rendering improved: top pipes are inverted, all pipes connect visually to screen edges using dynamic `displayHeight` (preserving hitboxes), and pipe pair spacing is consistent, preventing overlaps.
+– Pipe rendering improved: top pipes are inverted, all pipes connect visually to screen edges using dynamic \`displayHeight\` (preserving hitboxes), and pipe pair spacing is consistent, preventing overlaps.
 – Implemented sprite-based scoreboard using individual digit images for current score and high score. Score display is now always on top and features a celebration animation for multiples of 10.
-– Gameplay music implemented: "game_start.mp3" plays at game start (skipping the first 4 seconds), "second_level.mp3" at 20 points, and "third_level.mp3" at 40 points. Music transitions smoothly and stops on game over.
+– Gameplay music implemented: "game_start.mp3" plays at game start (skipping the first 4 seconds), "second_level.mp3" at 20 points, and "third_level.mp3" at 40 points. Music transitions smoothly (cross-fades) and stops on game over.
 
 ## What's Left to Build
 Mostly complete:

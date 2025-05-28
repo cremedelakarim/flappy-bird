@@ -53,6 +53,40 @@ let secondLevelMusic;
 let thirdLevelMusic;
 let currentMusicLevel = 0;   // 0 = none, 1 = start, 2 = 20 pts, 3 = 40 pts
 
+// NEW – how long one side of the cross-fade lasts (ms)
+const MUSIC_FADE_DURATION = 1000;
+
+// NEW – helper that fades the current track out while fading the
+//       next track in, then updates \`currentMusicLevel\`
+function crossFade(scene, fromSound, toSound, nextLevel) {
+    if (!toSound) return;
+
+    // Start the incoming track silently (only once)
+    if (!toSound.isPlaying) {
+        toSound.play();
+        toSound.setVolume(0);
+    }
+
+    // Fade-in the new track
+    scene.tweens.add({
+        targets  : toSound,
+        volume   : 0.5,                // your normal music volume
+        duration : MUSIC_FADE_DURATION
+    });
+
+    // Fade-out (and stop) the old track
+    if (fromSound && fromSound.isPlaying) {
+        scene.tweens.add({
+            targets   : fromSound,
+            volume    : 0,
+            duration  : MUSIC_FADE_DURATION,
+            onComplete: () => fromSound.stop()
+        });
+    }
+
+    currentMusicLevel = nextLevel;
+}
+
 const SCORE_TEXT_STYLE = { fontSize: '32px', fill: '#fff', fontStyle: 'bold' };
 const FINAL_SCORE_STYLE = { fontSize: '48px', fill: '#fff', fontStyle: 'bold' };
 const FINAL_BEST_SCORE_STYLE = { fontSize: '38px', fill: '#ccc', fontStyle: 'bold' }; // Slightly subdued
@@ -257,8 +291,15 @@ function create() {
             }
             scene.sound.play('swoosh'); // Play swoosh sound when game starts/restarts
             
-            /* NEW – start level-1 music */
-            if (gameStartMusic) gameStartMusic.play({ seek: 4 }); // Start playback 4 seconds into the audio file
+            /* NEW – start level-1 music with a short fade-in */
+            if (gameStartMusic) {
+                gameStartMusic.play({ seek: 4, volume: 0 });   // start silently 4 s in
+                scene.tweens.add({
+                    targets  : gameStartMusic,
+                    volume   : 0.5,
+                    duration : MUSIC_FADE_DURATION
+                });
+            }
             if (secondLevelMusic && secondLevelMusic.isPlaying) secondLevelMusic.stop();
             if (thirdLevelMusic  && thirdLevelMusic.isPlaying)  thirdLevelMusic.stop();
             currentMusicLevel = 1;
@@ -336,17 +377,14 @@ function create() {
                         scene.sound.play('point'); // Play point sound
                         console.log("Score: ", score, "Pipe Pair ID: ", pipe.pairId);
                         
-                        /* NEW – switch tracks at 20 & 40 points */
+                        /* NEW – cross-fade at the 20- and 40-point milestones */
                         if (score >= 40 && currentMusicLevel < 3) {
-                            if (gameStartMusic && gameStartMusic.isPlaying) gameStartMusic.stop();
-                            if (secondLevelMusic && secondLevelMusic.isPlaying) secondLevelMusic.stop();
-                            if (thirdLevelMusic) thirdLevelMusic.play();
-                            currentMusicLevel = 3;
+                            crossFade(scene,
+                                      currentMusicLevel === 2 ? secondLevelMusic : gameStartMusic,
+                                      thirdLevelMusic,
+                                      3);
                         } else if (score >= 20 && currentMusicLevel < 2) {
-                            if (gameStartMusic && gameStartMusic.isPlaying) gameStartMusic.stop();
-                            if (thirdLevelMusic  && thirdLevelMusic.isPlaying)  thirdLevelMusic.stop();
-                            if (secondLevelMusic) secondLevelMusic.play();
-                            currentMusicLevel = 2;
+                            crossFade(scene, gameStartMusic, secondLevelMusic, 2);
                         }
 
                         if (score > 0 && score % 10 === 0) {
